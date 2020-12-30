@@ -1,4 +1,5 @@
 import maya.cmds as cmds
+from functools import partial 
 import System.utils as utils
 reload(utils)
 
@@ -67,11 +68,19 @@ class Blueprint_UI:
         button_size = 64
         row = cmds.rowLayout(numberOfColumns=2, columnWidth=([1, button_size]), adjustableColumn=2, columnAttach=([1, "both", 0], [2, "both", 5]))
 
-        self.UI_elements["module_button_" + module] = cmds.symbolButton(width=button_size, height=button_size, image=icon)
+        self.UI_elements["module_button_" + module] = cmds.symbolButton(width=button_size, height=button_size, image=icon, command=partial(self.install_module, module))
 
         text_column = cmds.columnLayout(columnAlign="center")
         cmds.text(align="center", width=300, label=title)
 
         cmds.scrollField(text=description, editable=False, width=300, height=button_size - 5, wordWrap=True)
         cmds.setParent(self.UI_elements["module_list_column"])
+
+
+    def install_module(self, module, *args): 
+        mod = __import__("Blueprint." + module, {}, {}, [module])
+        reload(mod)
         
+        module_class = getattr(mod, mod.CLASS_NAME)
+        module_instance = module_class()
+        module_instance.install()
