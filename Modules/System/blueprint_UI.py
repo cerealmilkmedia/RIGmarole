@@ -77,10 +77,22 @@ class Blueprint_UI:
         cmds.setParent(self.UI_elements["module_list_column"])
 
 
-    def install_module(self, module, *args): 
+    def install_module(self, module, *args):
+        basename = "instance_"
+
+        cmds.namespace(setNamespace=":")
+        namespaces = cmds.namespaceInfo(listOnlyNamespaces=True)
+        for i in range(len(namespaces)):
+            if namespaces[i].find("__") != -1:
+                namespaces[i] = namespaces[i].partition("__")[2]
+       
+        new_suffix = utils.find_highest_trailing_number(namespaces, basename) + 1
+        user_spec_name = basename + str(new_suffix)
+
         mod = __import__("Blueprint." + module, {}, {}, [module])
         reload(mod)
         
         module_class = getattr(mod, mod.CLASS_NAME)
-        module_instance = module_class()
+        module_instance = module_class(user_spec_name)
         module_instance.install()
+        

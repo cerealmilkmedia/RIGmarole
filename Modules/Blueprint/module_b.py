@@ -13,3 +13,4 @@ class ModuleB():
     
     def install(self):
         print "Install " + CLASS_NAME
+        
