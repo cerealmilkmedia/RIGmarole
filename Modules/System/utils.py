@@ -49,3 +49,11 @@ def find_highest_trailing_number(names, basename):
                     highest_value = numerical_element
 
     return highest_value
+
+
+def strip_leading_namespace(nodename):
+    if nodename.find(":") == -1:
+        return None
+    
+    split_string = str(nodename).partition(":")
+    return [split_string[0], split_string[2]]
