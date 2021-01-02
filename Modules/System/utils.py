@@ -110,3 +110,13 @@ def basic_stretchy_IK(root_joint, end_joint, container=None, lockMinimumLength=T
     returned_dict["root_locator_point_constraint"] = root_locator_point_constraint
 
     return returned_dict
+
+def force_scene_update():
+    cmds.setToolTo("moveSuperContext")
+    nodes = cmds.ls()
+
+    for node in nodes:
+        cmds.select(node, replace=True)
+    
+    cmds.select(clear=True)
+    cmds.setToolTo("selectSuperContext")
