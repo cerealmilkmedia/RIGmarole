@@ -98,7 +98,7 @@ def basic_stretchy_IK(root_joint, end_joint, container=None, lockMinimumLength=T
     cmds.setAttr(end_locator+".visibility", 0)
 
     if container != None:
-        cmds.container(container, edit=True, addNode=contained_nodes, ihb=True)
+        add_node_to_container(container, contained_nodes, ihb=True)
 
     returned_dict = {}
     returned_dict["ik_handle"] = ik_handle
@@ -112,7 +112,7 @@ def basic_stretchy_IK(root_joint, end_joint, container=None, lockMinimumLength=T
     return returned_dict
 
 def force_scene_update():
-    cmds.setToolTo("moveSuperContext")
+    cmds.setToolTo("moveSuperContext") 
     nodes = cmds.ls()
 
     for node in nodes:
@@ -120,3 +120,22 @@ def force_scene_update():
     
     cmds.select(clear=True)
     cmds.setToolTo("selectSuperContext")
+
+
+def add_node_to_container(container, nodesIn, ihb=False, includeShapes=False, force=False):
+    import types
+
+    nodes = []
+    if type(nodesIn) is types.ListType:
+        nodes = list(nodesIn)
+    else:
+        nodes = [nodesIn]
+
+    conversion_nodes = []
+    for node in nodes:
+        node_conversion_nodes = cmds.listConnections(node, source=True, destination=True)
+        node_conversion_nodes = cmds.ls(node_conversion_nodes, type="unitConversion")
+
+        conversion_nodes.extend(node_conversion_nodes)
+    nodes.extend(conversion_nodes)
+    cmds.container(container, edit=True, addNode=nodes, ihb=ihb, includeShapes=includeShapes, force=force)

@@ -41,8 +41,9 @@ class ModuleA():
 
             joint_name_full = cmds.joint(n=self.module_namespace+":"+joint_name, p=joint_pos)
             joints.append(joint_name_full)
-  
-            cmds.container(self.container_name, edit=True, addNode=joint_name_full)
+
+            utils.add_node_to_container(self.container_name, joint_name_full) 
+           
             cmds.container(self.container_name, edit=True, publishAndBind=[joint_name_full+".rotate", joint_name+"_R"])
             cmds.container(self.container_name, edit=True, publishAndBind=[joint_name_full+".rotateOrder", joint_name+"_rotateOrder"] )
 
@@ -58,8 +59,9 @@ class ModuleA():
             translation_controls.append(self.create_translation_control_at_joint(joint)) 
 
         root_joint_point_constraint = cmds.pointConstraint(translation_controls[0], joints[0], maintainOffset=False, name=joints[0]+"_pointConstraint")
-        cmds.container(self.container_name, edit=True, addNode=root_joint_point_constraint)
 
+        utils.add_node_to_container(self.container_name, root_joint_point_constraint)
+        
         # Setup stretchy controls
         for index in range(len(joints) - 1):
             self.setup_stretchy_joint_segment(joints[index], joints[index+1])
@@ -73,7 +75,8 @@ class ModuleA():
         cmds.file(pos_control_file, i=True)
 
         container = cmds.rename("translation_control_container", joint+"_translation_control_container")
-        cmds.container(self.container_name, edit=True, addNode=container)
+        utils.add_node_to_container(self.container_name, container)
+        
 
         for node in cmds.container(container, q=True, nodeList=True):
             cmds.rename(node, joint+"_"+node, ignoreShape=True)
@@ -115,7 +118,8 @@ class ModuleA():
 
         child_point_constraint = cmds.pointConstraint(child_translation_control, end_locator, maintainOffset=False, n=end_locator+"_pointConstraint" )[0]
 
-        cmds.container(self.container_name, edit=True, addNode=[pole_vector_locator_grp, parent_constraint, child_point_constraint], ihb=True)
+        utils.add_node_to_container(self.container_name,[pole_vector_locator_grp, parent_constraint, child_point_constraint], ihb=True )
+       
 
         for node in [ik_handle, root_locator, end_locator]:
             cmds.parent(node, self.joints_grp, absolute=True)
