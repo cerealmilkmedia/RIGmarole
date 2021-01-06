@@ -22,7 +22,8 @@ class ModuleA():
         cmds.namespace(add=self.module_namespace)
         
         self.joints_grp = cmds.group(empty=True, name=self.module_namespace+":joints_grp")
-        self.module_grp = cmds.group(self.joints_grp, name=self.module_namespace+":module_grp")
+        self.hierarchy_representation_grp = cmds.group(empty=True, name=self.module_namespace+".hierarchyRepresentation_grp")
+        self.module_grp = cmds.group([self.joints_grp, self.hierarchy_representation_grp], name=self.module_namespace+":module_grp")
 
         cmds.container(name=self.container_name, addNode=self.module_grp, ihb=True)
         cmds.select(clear=True)
@@ -41,6 +42,8 @@ class ModuleA():
 
             joint_name_full = cmds.joint(n=self.module_namespace+":"+joint_name, p=joint_pos)
             joints.append(joint_name_full)
+
+            cmds.setAttr(joint_name_full+".visibility", 0)
 
             utils.add_node_to_container(self.container_name, joint_name_full) 
            
@@ -125,8 +128,34 @@ class ModuleA():
             cmds.parent(node, self.joints_grp, absolute=True)
             cmds.setAttr(node+".visibility", 0)
         
+        self.create_hierarchy_representation(parent_joint, child_joint)
 
+    def create_hierarchy_representation(self, parent_joint, child_joint):
+        nodes = self.create_stretchy_object("/ControlObjects/Blueprint/hierarchy_representation.ma", "hierarchy_representation_container", "hierarchy_representation", parent_joint, child_joint)
 
+        constrained_grp = nodes[2]
+        cmds.parent(constrained_grp, self.hierarchy_representation_grp, relative=True)
 
+    def create_stretchy_object(self, object_relative_file_path, object_container_name, object_name, parent_joint, child_joint):
+        object_file = os.environ["RIGMAROLE"] + object_relative_file_path
+        cmds.file(object_file, i=True)
 
+        object_container = cmds.rename(object_container_name, parent_joint+"_"+object_container_name)
         
+        for node in cmds.container(object_container, q=True, nodeList=True):
+            cmds.rename(node, parent_joint+"_"+node, ignoreShape=True)
+
+        object = parent_joint+"_"+object_name
+
+        constrained_grp = cmds.group(empty=True, name=object+"_parentConstraint_grp")
+        cmds.parent(object, constrained_grp, absolute=True) 
+
+        parent_contraint = cmds.parentConstraint(parent_joint, constrained_grp, maintainOffset=False)[0]
+
+        cmds.connectAttr(child_joint+".translateX", constrained_grp+".scaleX")
+
+        utils.add_node_to_container(object_container, [constrained_grp, parent_contraint], ihb=True)
+        utils.add_node_to_container(self.container_name, object_container)
+        
+
+        return(object_container, object, constrained_grp)
