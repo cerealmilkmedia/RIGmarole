@@ -57,15 +57,19 @@ class ModuleA():
         
         cmds.parent(joints[0], self.joints_grp, absolute=True)
 
+        self.initialis_module_transfom(self.joint_info[0][1])
+
         translation_controls = []
         for joint in joints:
             translation_controls.append(self.create_translation_control_at_joint(joint)) 
+
+        
 
         root_joint_point_constraint = cmds.pointConstraint(translation_controls[0], joints[0], maintainOffset=False, name=joints[0]+"_pointConstraint")
 
         utils.add_node_to_container(self.container_name, root_joint_point_constraint)
         
-        # Setup stretchy controls
+        # Setup stretchy joint segments
         for index in range(len(joints) - 1):
             self.setup_stretchy_joint_segment(joints[index], joints[index+1])
 
@@ -81,10 +85,12 @@ class ModuleA():
         utils.add_node_to_container(self.container_name, container)
         
 
-        for node in cmds.container(container, q=True, nodeList=True):
+        for node in cmds.container(container, q=True, nodeList=True): 
             cmds.rename(node, joint+"_"+node, ignoreShape=True)
         
         control = joint + "_translation_control"
+        cmds.parent(control, self.module_transform, absolute=True )
+
         joint_pos = cmds.xform(joint, q=True, worldSpace=True, translation=True)
         cmds.xform(control, worldSpace=True, absolute=True, translation=joint_pos)
 
@@ -153,9 +159,29 @@ class ModuleA():
         parent_contraint = cmds.parentConstraint(parent_joint, constrained_grp, maintainOffset=False)[0]
 
         cmds.connectAttr(child_joint+".translateX", constrained_grp+".scaleX")
+        scale_constraint = cmds.scaleConstraint(self.module_transform, constrained_grp, skip=["x"], maintainOffset=False)[0]
 
-        utils.add_node_to_container(object_container, [constrained_grp, parent_contraint], ihb=True)
+
+        utils.add_node_to_container(object_container, [constrained_grp, parent_contraint, scale_constraint], ihb=True)
         utils.add_node_to_container(self.container_name, object_container)
         
 
         return(object_container, object, constrained_grp)
+
+    def initialis_module_transfom(self, root_pos):
+        control_grp_file = os.environ["RIGMAROLE"] + "/ControlObjects/Blueprint/controlGroup_control.ma"
+        cmds.file(control_grp_file, i=True)
+
+        self.module_transform = cmds.rename("controlGroup_control", self.module_namespace+":module_transform")
+        cmds.xform(self.module_transform, worldSpace=True, absolute=True, translation=root_pos)
+        utils.add_node_to_container(self.container_name, self.module_transform, ihb=True)
+
+        # Setup global scaling
+        cmds.connectAttr(self.module_transform+".scaleY", self.module_transform+".scaleX")
+        cmds.connectAttr(self.module_transform+".scaleY", self.module_transform+".scaleZ")
+
+        cmds.aliasAttr("globalScale", self.module_transform+".scaleY")
+
+        cmds.container(self.container_name, edit=True, publishAndBind=[self.module_transform+".translate", "moduleTransform_T"])
+        cmds.container(self.container_name, edit=True, publishAndBind=[self.module_transform+".rotate", "moduleTransform_R"])
+        cmds.container(self.container_name, edit=True, publishAndBind=[self.module_transform+".globalScale", "moduleTransform_globalScale"])
