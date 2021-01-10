@@ -23,7 +23,8 @@ class ModuleA():
         
         self.joints_grp = cmds.group(empty=True, name=self.module_namespace+":joints_grp")
         self.hierarchy_representation_grp = cmds.group(empty=True, name=self.module_namespace+".hierarchyRepresentation_grp")
-        self.module_grp = cmds.group([self.joints_grp, self.hierarchy_representation_grp], name=self.module_namespace+":module_grp")
+        self.orientation_controls_grp = cmds.group(empty=True, name=self.module_namespace+":orientation_controls_grp")
+        self.module_grp = cmds.group([self.joints_grp, self.hierarchy_representation_grp, self.orientation_controls_grp], name=self.module_namespace+":module_grp")
 
         cmds.container(name=self.container_name, addNode=self.module_grp, ihb=True)
         cmds.select(clear=True)
@@ -72,6 +73,10 @@ class ModuleA():
         # Setup stretchy joint segments
         for index in range(len(joints) - 1):
             self.setup_stretchy_joint_segment(joints[index], joints[index+1])
+
+        # NON DEFAULT FUNCTIONALITY
+        self.create_orientation_control(joints[0], joints[1])
+    
 
         utils.force_scene_update()
 
@@ -185,3 +190,28 @@ class ModuleA():
         cmds.container(self.container_name, edit=True, publishAndBind=[self.module_transform+".translate", "moduleTransform_T"])
         cmds.container(self.container_name, edit=True, publishAndBind=[self.module_transform+".rotate", "moduleTransform_R"])
         cmds.container(self.container_name, edit=True, publishAndBind=[self.module_transform+".globalScale", "moduleTransform_globalScale"])
+
+    def delete_hierarchy_representation(self, parent_joint):
+        hierarchy_container = parent_joint + "_hierarchy_representation_container"
+        cmds.delete(hierarchy_container)
+
+    def create_orientation_control(self, parent_joint, child_joint):
+        self.delete_hierarchy_representation(parent_joint)
+
+        nodes = self.create_stretchy_object("/ControlObjects/Blueprint/orientation_control.ma", "orientation_control_container", "orientation_control", parent_joint, child_joint)
+
+        orientation_container = nodes[0]
+        orientation_control = nodes[1]
+        constrained_grp = nodes[2]
+
+        cmds.parent(constrained_grp, self.orientation_controls_grp, relative=True)
+
+        parent_joint_without_namespace = utils.strip_all_namespaces(parent_joint)[1]
+
+        attr_name = parent_joint_without_namespace + "_orientation"
+        cmds.container(orientation_container, edit=True, publishAndBind=[orientation_control+".rotateX", attr_name])
+        cmds.container(self.container_name, edit=True, publishAndBind=[orientation_container+"."+attr_name, attr_name])
+
+        return orientation_control
+
+
